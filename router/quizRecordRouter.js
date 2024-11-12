@@ -8,7 +8,7 @@ const router = express.Router();
 router.post("/add", checkLogin("user"), quizRecordController.createQuizRecord);
 
 // Route to get a specific quiz record by record ID
-router.get("/:recordId", quizRecordController.getQuizRecord);
+router.get("/analytics", checkLogin("user"),quizRecordController.getUserQuizRecord);
 
 // Route to get all quiz records for a specific user
 router.get("/user/:userId", quizRecordController.getUserQuizRecords);

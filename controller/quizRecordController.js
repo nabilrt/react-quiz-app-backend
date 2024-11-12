@@ -27,6 +27,9 @@ const createQuizRecord = async (req, res) => {
             return res.status(404).json({ message: "Category not found" });
         }
 
+        // Calculate accuracy for the current attempt
+        const accuracy = (correctAnswers / totalQuestions) * 100;
+
         // Check if the quiz record already exists for this user and quiz
         let quizRecord = await QuizRecord.findOne({
             user: userId,
@@ -35,39 +38,36 @@ const createQuizRecord = async (req, res) => {
         });
 
         if (quizRecord) {
-            // Update existing record: increase attempts
-            quizRecord.attempts += 1;
-            quizRecord.date = new Date(); // Update the date to the latest attempt
+            // Update existing record: add new attempt to the attempts array
+            quizRecord.attempts.push({
+                score,
+                correctAnswers,
+                incorrectAnswers,
+                accuracy,
+                date: new Date(),
+            });
 
-            // Compare current metrics with stored best values and update if necessary
-            if (score > quizRecord.score) {
-                quizRecord.score = score;
+            // Update total questions if it has changed
+            if (quizRecord.totalQuestions !== totalQuestions) {
+                quizRecord.totalQuestions = totalQuestions;
             }
-            if (correctAnswers > quizRecord.correctAnswers) {
-                quizRecord.correctAnswers = correctAnswers;
-            }
-            if (incorrectAnswers < quizRecord.incorrectAnswers) {
-                quizRecord.incorrectAnswers = incorrectAnswers;
-            }
-            const currentAccuracy = (correctAnswers / totalQuestions) * 100;
-            if (currentAccuracy > quizRecord.accuracy) {
-                quizRecord.accuracy = currentAccuracy;
-            }
-            quizRecord.totalQuestions = totalQuestions; // Total questions stays consistent
         } else {
-            // Create new quiz record if it doesn't exist
+            // Create new quiz record with the first attempt
             quizRecord = new QuizRecord({
                 user: new mongoose.Types.ObjectId(userId),
                 quiz: new mongoose.Types.ObjectId(quizId),
                 categoryId: new mongoose.Types.ObjectId(category._id),
                 categoryName: category.category,
-                score,
                 totalQuestions,
-                correctAnswers,
-                incorrectAnswers,
-                attempts: 1,
-                accuracy: (correctAnswers / totalQuestions) * 100,
-                date: new Date(),
+                attempts: [
+                    {
+                        score,
+                        correctAnswers,
+                        incorrectAnswers,
+                        accuracy,
+                        date: new Date(),
+                    },
+                ],
             });
         }
 
@@ -86,6 +86,178 @@ const createQuizRecord = async (req, res) => {
 };
 
 // 2. Get a Specific Quiz Record
+const getUserQuizRecord = async (req, res) => {
+    try {
+        const quizRecords = await QuizRecord.find({ user: req.user.userId })
+            .populate("user")
+            .populate("quiz"); // Populate the quiz to access the topic
+
+        if (!quizRecords || quizRecords.length === 0) {
+            return res.status(404).json({ message: "No quiz records found" });
+        }
+
+        // Initialize accumulators
+        let totalAttempts = 0;
+        let totalScore = 0;
+        let totalCorrectAnswers = 0;
+        let totalQuestions = 0;
+        const topicScoreDistribution = {}; // For topic-based average score distribution
+        const accuracyOverTime = [];
+        const categoryAttempts = {};
+        const correctAnswersByCategory = {}; // For top categories by correct answers
+        const topicAttempts = {};
+        const correctIncorrectPerCategory = {};
+
+        // Process each quiz record and its attempts
+        quizRecords.forEach((record) => {
+            // Aggregate data from each attempt
+            record.attempts.forEach((attempt) => {
+                totalAttempts += 1;
+                totalScore += attempt.score;
+                totalCorrectAnswers += attempt.correctAnswers;
+                totalQuestions += record.totalQuestions;
+
+                // Group scores by topic
+                const topic = record.quiz.topic;
+                if (!topicScoreDistribution[topic]) {
+                    topicScoreDistribution[topic] = {
+                        totalScore: 0,
+                        count: 0, // Track the number of attempts for averaging
+                    };
+                }
+                topicScoreDistribution[topic].totalScore += attempt.score;
+                topicScoreDistribution[topic].count += 1;
+
+                // Accuracy over time for each attempt
+                accuracyOverTime.push({
+                    date: attempt.date,
+                    accuracy: attempt.accuracy,
+                    topic: record.quiz.topic,
+                    category: record.categoryName,
+                });
+
+                // Track attempts per category
+                const categoryKey = `${record.quiz.topic} - ${record.categoryName}`;
+                categoryAttempts[categoryKey] =
+                    (categoryAttempts[categoryKey] || 0) + 1;
+
+                // Track correct answers per category for top 5 categories by correct answers
+                if (!correctAnswersByCategory[categoryKey]) {
+                    correctAnswersByCategory[categoryKey] = {
+                        topic: record.quiz.topic,
+                        category: record.categoryName,
+                        correct: 0,
+                    };
+                }
+                correctAnswersByCategory[categoryKey].correct +=
+                    attempt.correctAnswers;
+
+                // Track correct vs. incorrect answers per category
+                if (!correctIncorrectPerCategory[categoryKey]) {
+                    correctIncorrectPerCategory[categoryKey] = {
+                        topic: record.quiz.topic,
+                        category: record.categoryName,
+                        correct: 0,
+                        incorrect: 0,
+                    };
+                }
+                correctIncorrectPerCategory[categoryKey].correct +=
+                    attempt.correctAnswers;
+                correctIncorrectPerCategory[categoryKey].incorrect +=
+                    attempt.incorrectAnswers;
+
+                // Track attempts per topic
+                topicAttempts[record.quiz.topic] =
+                    (topicAttempts[record.quiz.topic] || 0) + 1;
+            });
+        });
+
+        // Calculate single values
+        const totalQuizzes = quizRecords.length;
+        const averageScore = (totalScore / totalAttempts).toFixed(2);
+        const overallAccuracy = (
+            (totalCorrectAnswers / totalQuestions) *
+            100
+        ).toFixed(2);
+        const mostAttemptedCategory = Object.keys(categoryAttempts).reduce(
+            (a, b) => (categoryAttempts[a] > categoryAttempts[b] ? a : b)
+        );
+
+        // Convert topic score distribution to an array with average scores
+        let scoreDistribution = Object.entries(topicScoreDistribution).map(
+            ([topic, data]) => ({
+                topic,
+                averageScore: (data.totalScore / data.count).toFixed(2), // Calculate average score
+            })
+        );
+
+        // Sort by average score in descending order and take the top 5
+        scoreDistribution = scoreDistribution
+            .sort((a, b) => b.averageScore - a.averageScore)
+            .slice(0, 5);
+
+        // Sort and select top 5 most attempted categories
+        const topMostAttemptedCategories = Object.entries(categoryAttempts)
+            .map(([key, attempts]) => {
+                const [topic, category] = key.split(" - ");
+                return { topic, category, attempts };
+            })
+            .sort((a, b) => b.attempts - a.attempts)
+            .slice(0, 5);
+
+        // Sort and select top 5 categories by correct answers
+        const topCategoriesByCorrectAnswers = Object.values(
+            correctAnswersByCategory
+        )
+            .sort((a, b) => b.correct - a.correct)
+            .slice(0, 5);
+
+        // Format attempts per category for chart data
+        const attemptsPerCategory = Object.keys(categoryAttempts).map((key) => {
+            const [topic, category] = key.split(" - ");
+            return { topic, category, attempts: categoryAttempts[key] };
+        });
+
+        // Format correct vs. incorrect answers per category for chart data
+        const correctIncorrectChartData = Object.values(
+            correctIncorrectPerCategory
+        );
+
+        // Format attempts per topic for chart data
+        const attemptsPerTopicData = Object.keys(topicAttempts).map(
+            (topic) => ({
+                topic,
+                attempts: topicAttempts[topic],
+            })
+        );
+
+        // Send the single values and chart data
+        res.status(200).json({
+            singleValues: {
+                totalQuizzes,
+                averageScore,
+                overallAccuracy,
+                mostAttemptedCategory,
+            },
+            chartData: {
+                scoreDistribution,
+                accuracyOverTime,
+                attemptsPerCategory,
+                correctIncorrectChartData,
+                attemptsPerTopic: attemptsPerTopicData,
+            },
+            top5Data: {
+                topAverageScoreTopics: scoreDistribution,
+                topMostAttemptedCategories,
+                topCategoriesByCorrectAnswers,
+            },
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 const getQuizRecord = async (req, res) => {
     try {
         const { recordId } = req.params;
@@ -394,4 +566,5 @@ module.exports = {
     getQuizAnalytics,
     getUserAnalytics,
     getOverallQuizAnalytics,
+    getUserQuizRecord,
 };
