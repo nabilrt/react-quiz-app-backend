@@ -9,6 +9,7 @@ router.post("/add", checkLogin("user"), quizRecordController.createQuizRecord);
 
 // Route to get a specific quiz record by record ID
 router.get("/analytics", checkLogin("user"),quizRecordController.getUserQuizRecord);
+router.get("/admin/analytics", checkLogin("admin"),quizRecordController.getAdminQuizAnalytics);
 
 // Route to get all quiz records for a specific user
 router.get("/user/:userId", quizRecordController.getUserQuizRecords);

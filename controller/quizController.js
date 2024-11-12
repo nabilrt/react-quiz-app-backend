@@ -1,12 +1,50 @@
 const Quiz = require("../models/Quiz");
+const cloudinaryConfig = require("../config/cloudinary");
+const fs = require("fs");
 
 // 1. Create a New Quiz (Basic Details Only)
 const createQuiz = async (req, res) => {
-    const { topic, info, logo } = req.body;
+    const { topic, info } = req.body;
+    const file = req.file;
     try {
+        let logo;
+        if (file) {
+            const image = await cloudinaryConfig.uploader.upload(file.path, {
+                folder: "quiz-app",
+            });
+            logo = image.secure_url;
+            fs.unlinkSync(file.path);
+        }
         const quiz = new Quiz({ topic, info, logo, categories: [] });
         await quiz.save();
         res.status(201).json({ message: "Quiz created successfully", quiz });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const updateQuiz = async (req, res) => {
+    const { topic, info } = req.body;
+    const file = req.file;
+    try {
+        let logo;
+        if (file) {
+            const image = await cloudinaryConfig.uploader.upload(file.path, {
+                folder: "quiz-app",
+            });
+            logo = image.secure_url;
+            fs.unlinkSync(file.path);
+        }
+        const quiz = await Quiz.findByIdAndUpdate(req.params.id, {
+            topic,
+            info,
+            ...(logo && { logo }),
+        });
+        const updatedQuiz = await Quiz.findById(req.params.id);
+        res.status(200).json({
+            message: "Quiz updated successfully",
+            quiz: updatedQuiz,
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -139,4 +177,5 @@ module.exports = {
     updateQuizBasicDetails,
     getQuizByTopic,
     getAllQuiz,
+    updateQuiz,
 };
