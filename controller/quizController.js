@@ -61,7 +61,43 @@ const addCategoryToQuiz = async (req, res) => {
         }
         quiz.categories.push({ category, info, questions: [] });
         await quiz.save();
-        res.status(200).json({ message: "Category added successfully", quiz });
+        const updatedQuiz = await Quiz.findById(quizId);
+        res.status(200).json({
+            message: "Category added successfully",
+            category: updatedQuiz.categories,
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const updateCategoryInQuiz = async (req, res) => {
+    const { quizId, categoryId } = req.params;
+    const { category, info } = req.body;
+
+    try {
+        const quiz = await Quiz.findById(quizId);
+        if (!quiz) {
+            return res.status(404).json({ message: "Quiz not found" });
+        }
+
+        // Find the category by ID within the quiz
+        const categoryToUpdate = quiz.categories.id(categoryId);
+        if (!categoryToUpdate) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
+        // Update category and info fields
+        categoryToUpdate.category = category;
+        categoryToUpdate.info = info;
+
+        // Save the updated quiz
+        await quiz.save();
+        const updatedQuiz = await Quiz.findById(quizId);
+        res.status(200).json({
+            message: "Category updated successfully",
+            category: updatedQuiz.categories,
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -155,9 +191,9 @@ const updateQuizBasicDetails = async (req, res) => {
 };
 
 const getQuizByTopic = async (req, res) => {
-    const { topic } = req.params;
+    const { id } = req.params;
     try {
-        const quiz = await Quiz.findOne({ topic: topic });
+        const quiz = await Quiz.findById(id);
         if (!quiz) {
             return res.status(404).json({ message: "Quiz not found" });
         }
@@ -178,4 +214,5 @@ module.exports = {
     getQuizByTopic,
     getAllQuiz,
     updateQuiz,
+    updateCategoryInQuiz,
 };

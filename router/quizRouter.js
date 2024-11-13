@@ -6,7 +6,7 @@ const singleUpload = require("../middleware/file-upload");
 
 // Routes
 router.get("/all-quiz", quizController.getAllQuiz);
-router.get("/topic/:topic", quizController.getQuizByTopic);
+router.get("/topic/:id", quizController.getQuizByTopic);
 router.post(
     "/add",
     checkLogin("admin"),
@@ -23,6 +23,11 @@ router.post(
     "/:quizId/category",
     checkLogin("admin"),
     quizController.addCategoryToQuiz
+);
+router.post(
+    "/:quizId/:categoryId",
+    checkLogin("admin"),
+    quizController.updateCategoryInQuiz
 );
 router.post(
     "/:quizId/category/:categoryId/question",
