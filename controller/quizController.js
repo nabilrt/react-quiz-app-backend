@@ -190,16 +190,6 @@ const getQuizById = async (req, res) => {
     }
 };
 
-// 5. Get All Quizzes
-const getAllQuizzes = async (req, res) => {
-    try {
-        const quizzes = await Quiz.find();
-        res.status(200).json(quizzes);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
 const getAllQuiz = async (req, res) => {
     try {
         const quizzes = await Quiz.find();
@@ -245,7 +235,6 @@ const deleteCategory = async (req, res) => {
     }
 };
 
-
 const getQuizByTopic = async (req, res) => {
     const { id } = req.params;
     try {
@@ -262,7 +251,6 @@ const getQuizByTopic = async (req, res) => {
 module.exports = {
     createQuiz,
     addCategoryToQuiz,
-    getAllQuizzes,
     deleteQuiz,
     getQuizByTopic,
     getAllQuiz,
