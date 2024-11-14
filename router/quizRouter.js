@@ -39,19 +39,12 @@ router.put(
     checkLogin("admin"),
     quizController.updateQuestionsInCategory
 );
-router.post(
-    "/:quizId/category/:categoryId/question",
-    checkLogin("admin"),
-    quizController.addQuestionToCategory
-);
-router.get("/:quizId", checkLogin("admin"), quizController.getQuizById);
 
 router.delete("/:quizId", checkLogin("admin"), quizController.deleteQuiz);
-router.delete("/:quizId/:categoryId", checkLogin("admin"), quizController.deleteCategory);
-router.put(
-    "/:quizId",
+router.delete(
+    "/:quizId/:categoryId",
     checkLogin("admin"),
-    quizController.updateQuizBasicDetails
+    quizController.deleteCategory
 );
 
 module.exports = router;

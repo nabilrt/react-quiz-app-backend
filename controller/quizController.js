@@ -245,24 +245,6 @@ const deleteCategory = async (req, res) => {
     }
 };
 
-// 7. Update Quiz Basic Details
-const updateQuizBasicDetails = async (req, res) => {
-    const { quizId } = req.params;
-    const { topic, info, logo } = req.body;
-    try {
-        const quiz = await Quiz.findById(quizId);
-        if (!quiz) {
-            return res.status(404).json({ message: "Quiz not found" });
-        }
-        quiz.topic = topic || quiz.topic;
-        quiz.info = info || quiz.info;
-        quiz.logo = logo || quiz.logo;
-        await quiz.save();
-        res.status(200).json({ message: "Quiz updated successfully", quiz });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
 
 const getQuizByTopic = async (req, res) => {
     const { id } = req.params;
@@ -280,11 +262,8 @@ const getQuizByTopic = async (req, res) => {
 module.exports = {
     createQuiz,
     addCategoryToQuiz,
-    addQuestionToCategory,
-    getQuizById,
     getAllQuizzes,
     deleteQuiz,
-    updateQuizBasicDetails,
     getQuizByTopic,
     getAllQuiz,
     updateQuiz,

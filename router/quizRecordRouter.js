@@ -8,25 +8,15 @@ const router = express.Router();
 router.post("/add", checkLogin("user"), quizRecordController.createQuizRecord);
 
 // Route to get a specific quiz record by record ID
-router.get("/analytics", checkLogin("user"),quizRecordController.getUserQuizRecord);
-router.get("/admin/analytics", checkLogin("admin"),quizRecordController.getAdminQuizAnalytics);
-
-// Route to get all quiz records for a specific user
-router.get("/user/:userId", quizRecordController.getUserQuizRecords);
-
-// Route to get analytics for a specific quiz
 router.get(
-    "/quiz/:quizId/:categoryId/analytics",
-    checkLogin("admin"),
-    quizRecordController.getQuizAnalytics
+    "/analytics",
+    checkLogin("user"),
+    quizRecordController.getUserQuizRecord
 );
-
-router.get("/user/:userId/:categoryId/analytics", quizRecordController.getUserAnalytics);
-
 router.get(
-    "/overall/analytics",
+    "/admin/analytics",
     checkLogin("admin"),
-    quizRecordController.getOverallQuizAnalytics
+    quizRecordController.getAdminQuizAnalytics
 );
 
 module.exports = router;
