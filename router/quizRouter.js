@@ -24,10 +24,20 @@ router.post(
     checkLogin("admin"),
     quizController.addCategoryToQuiz
 );
+router.get(
+    "/:quizId/:categoryId",
+    checkLogin("admin"),
+    quizController.getQuestionsInQuiz
+);
 router.post(
     "/:quizId/:categoryId",
     checkLogin("admin"),
     quizController.updateCategoryInQuiz
+);
+router.put(
+    "/:quizId/:categoryId",
+    checkLogin("admin"),
+    quizController.updateQuestionsInCategory
 );
 router.post(
     "/:quizId/category/:categoryId/question",
@@ -37,6 +47,7 @@ router.post(
 router.get("/:quizId", checkLogin("admin"), quizController.getQuizById);
 
 router.delete("/:quizId", checkLogin("admin"), quizController.deleteQuiz);
+router.delete("/:quizId/:categoryId", checkLogin("admin"), quizController.deleteCategory);
 router.put(
     "/:quizId",
     checkLogin("admin"),

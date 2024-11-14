@@ -103,6 +103,58 @@ const updateCategoryInQuiz = async (req, res) => {
     }
 };
 
+const updateQuestionsInCategory = async (req, res) => {
+    const { quizId, categoryId } = req.params;
+    const { questions } = req.body;
+
+    try {
+        const quiz = await Quiz.findById(quizId);
+        if (!quiz) {
+            return res.status(404).json({ message: "Quiz not found" });
+        }
+
+        // Find the category by ID within the quiz
+        const categoryToUpdate = quiz.categories.id(categoryId);
+        if (!categoryToUpdate) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
+        // Replace the questions array
+        categoryToUpdate.questions = questions;
+
+        // Save the updated quiz
+        await quiz.save();
+        res.status(200).json({
+            message: "Questions updated successfully",
+            category: categoryToUpdate,
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getQuestionsInQuiz = async (req, res) => {
+    const { quizId, categoryId } = req.params;
+    try {
+        const quiz = await Quiz.findById(quizId);
+        if (!quiz) {
+            return res.status(404).json({ message: "Quiz not found" });
+        }
+
+        // Find the category by ID within the quiz
+        const categoryToUpdate = quiz.categories.id(categoryId);
+        if (!categoryToUpdate) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+        res.status(200).json({
+            message: "Category Questions Fetched successfully",
+            questions: categoryToUpdate.questions,
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // 3. Add a Question to a Specific Category in a Quiz
 const addQuestionToCategory = async (req, res) => {
     const { quizId, categoryId } = req.params;
@@ -171,6 +223,28 @@ const deleteQuiz = async (req, res) => {
     }
 };
 
+const deleteCategory = async (req, res) => {
+    const { quizId, categoryId } = req.params;
+    try {
+        const quiz = await Quiz.findById(quizId);
+        if (!quiz) {
+            return res.status(404).json({ message: "Quiz not found" });
+        }
+        const category = quiz.categories.id(categoryId);
+        if (!category) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+        quiz.categories.pull({ _id: categoryId });
+
+        // Save the quiz with the category removed
+        await quiz.save();
+
+        res.status(200).json({ message: "Quiz deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // 7. Update Quiz Basic Details
 const updateQuizBasicDetails = async (req, res) => {
     const { quizId } = req.params;
@@ -215,4 +289,7 @@ module.exports = {
     getAllQuiz,
     updateQuiz,
     updateCategoryInQuiz,
+    getQuestionsInQuiz,
+    updateQuestionsInCategory,
+    deleteCategory,
 };
