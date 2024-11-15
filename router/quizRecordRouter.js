@@ -14,6 +14,11 @@ router.get(
     quizRecordController.getUserQuizRecord
 );
 router.get(
+    "/analytics/:userId",
+    checkLogin("user"),
+    quizRecordController.getUserQuizRecordForCommunity
+);
+router.get(
     "/admin/analytics",
     checkLogin("admin"),
     quizRecordController.getAdminQuizAnalytics

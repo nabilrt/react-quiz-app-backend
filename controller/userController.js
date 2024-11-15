@@ -163,6 +163,33 @@ const changePassword = async (req, res) => {
     }
 };
 
+const updateIssueStatus = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId);
+
+        // Update the status field only
+        const updatedIssue = await User.findByIdAndUpdate(
+            req.user.userId,
+            { privacy: !user.privacy },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedIssue) {
+            return res.status(404).json({ message: "Issue not found" });
+        }
+
+        res.status(200).json({
+            message: "User privacy status updated successfully",
+            user: updatedIssue,
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Failed to update issue status",
+            error: error.message,
+        });
+    }
+};
+
 module.exports = {
     createUser,
     loginUser,
@@ -171,4 +198,5 @@ module.exports = {
     uploadAvatar,
     updateUser,
     changePassword,
+    updateIssueStatus
 };

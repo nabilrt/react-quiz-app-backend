@@ -9,6 +9,7 @@ const {
     uploadAvatar,
     updateUser,
     changePassword,
+    updateIssueStatus,
 } = require("../controller/userController");
 
 const userRouter = express.Router();
@@ -29,5 +30,6 @@ userRouter.post("/update", checkLogin("user"), updateUser);
 userRouter.post("/admin/update", checkLogin("admin"), updateUser);
 userRouter.post("/update-password", checkLogin("user"), changePassword);
 userRouter.post("/admin/update-password", checkLogin("admin"), changePassword);
+userRouter.post("/update-privacy", checkLogin("user"), updateIssueStatus);
 
 module.exports = userRouter;
