@@ -457,8 +457,95 @@ const getAdminQuizAnalytics = async (req, res) => {
     }
 };
 
+const getLeaderboard = async (req, res) => {
+    try {
+        const { topicCategory } = req.params;
+        const [topicName, categoryName] = topicCategory.split(" - ");
+
+        // Step 1: Find the quiz ID and category ID based on topic and category names
+        const quiz = await Quiz.findOne({
+            topic: topicName,
+            "categories.category": categoryName,
+        });
+
+        if (!quiz) {
+            return res.status(404).json({
+                success: false,
+                message: "Quiz or category not found.",
+            });
+        }
+
+        // Retrieve the specific category details
+        const category = quiz.categories.find(
+            (cat) => cat.category === categoryName
+        );
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: "Category not found within the quiz.",
+            });
+        }
+
+        // Step 2: Find top 10 users based on total points for the quiz and category
+        const leaderboard = await QuizRecord.aggregate([
+            {
+                $match: {
+                    quiz: new mongoose.Types.ObjectId(quiz._id),
+                    categoryId: new mongoose.Types.ObjectId(category._id),
+                },
+            },
+            // Unwind attempts array to treat each attempt as a separate document
+            { $unwind: "$attempts" },
+            // Group by user and calculate total points
+            {
+                $group: {
+                    _id: "$user",
+                    totalPoints: { $sum: "$attempts.score" },
+                },
+            },
+            // Sort by total points in descending order
+            { $sort: { totalPoints: -1 } },
+            // Limit to top 10 users
+            { $limit: 10 },
+            // Populate user details from the User collection
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "user",
+                },
+            },
+            // Flatten the user details array
+            { $unwind: "$user" },
+            // Project the final output structure
+            {
+                $project: {
+                    userId: "$user._id",
+                    userName: "$user.name",
+                    userAvatar: "$user.avatar",
+                    totalPoints: 1,
+                },
+            },
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: leaderboard,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Server error while fetching leaderboard.",
+        });
+    }
+};
+
 module.exports = {
     createQuizRecord,
     getUserQuizRecord,
     getAdminQuizAnalytics,
+    getLeaderboard,
 };

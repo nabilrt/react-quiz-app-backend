@@ -19,4 +19,10 @@ router.get(
     quizRecordController.getAdminQuizAnalytics
 );
 
+router.get(
+    "/leaderboard/:topicCategory",
+    checkLogin("user"),
+    quizRecordController.getLeaderboard
+);
+
 module.exports = router;

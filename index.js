@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const userRouter = require("./router/userRouter");
 const quizRouter = require("./router/quizRouter");
 const quizRecordRouter = require("./router/quizRecordRouter");
+const issueRouter = require("./router/issueRouter");
 require("dotenv").config();
 
 const app = express();
@@ -26,6 +27,7 @@ mongoose
 app.use("/user", userRouter);
 app.use("/quiz", quizRouter);
 app.use("/quiz-record", quizRecordRouter);
+app.use("/issue", issueRouter);
 
 app.listen(PORT, function () {
     console.log(`Server started at PORT ${PORT}`);
